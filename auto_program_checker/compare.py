@@ -59,28 +59,26 @@ def parse_args():
     return parser.parse_args()
 
 def equal_bits(bit_start, bit_end, grits_bits, driver_bits):
-    for i in range(bit_start, bit_end):
+    for i in range(bit_start, bit_end+1):
         if grits_bits[i] != driver_bits[i]:
             return False
     return True
 
 def nonull_bits(bit_start, bit_end, driver_bits):
-    for i in range(bit_start, bit_end):
+    for i in range(bit_start, bit_end+1):
          if driver_bits[i] == '1':
                 return True  
     return False
 
-
-def cmd_compare(frame_id, slide_id, cmd_driver, cmd_grits, flags, error_list, debug_mode = True, mmc='off'):
-    def modify_bits(bits_str, start, end, target='0'):
+def modify_bits(bits_str, start, end, target='0'):
         bits_list = list(bits_str)
         for bi in range(start, end+1):
             bits_list[bi] = target
         return ''.join(bits_list)
 
-    print(cmd_driver)
-    print(cmd_grits)
-    
+def cmd_compare(frame_id, slide_id, cmd_driver, cmd_grits, flags, error_list, debug_mode = True, mmc='off'):    
+    #print(cmd_driver)
+    #print(cmd_grits)    
     dw_length = cmd_grits.command_rule.length #get the dw length need to be compared 
     dws_driver = ''
     dws_grits = ''
@@ -88,7 +86,8 @@ def cmd_compare(frame_id, slide_id, cmd_driver, cmd_grits, flags, error_list, de
     for i in range(0, dw_length):#dword[0] is the command code 
         dws_grits += RowParser.get_binary_dword(cmd_grits.dwords[i])
         dws_driver += RowParser.get_binary_dword(cmd_driver.dwords[i])
-
+    #import pdb 
+    #pdb.set_trace()
     #don't need to compare the last 12 bits in the dwords[0]
     dws_grits = modify_bits(dws_grits, 20, 31)
     dws_driver = modify_bits(dws_driver, 20, 31)
@@ -109,13 +108,13 @@ def cmd_compare(frame_id, slide_id, cmd_driver, cmd_grits, flags, error_list, de
             #if '73c40' in cmd_driver.cmd_code:
             #   import pdb 
             #  pdb.set_trace() 
-            print("#########", len(dws_grits), cmd_driver.name, bit_left, bit_right)
+            #print("#########", len(dws_grits), cmd_driver.name, bit_left, bit_right)
         else:
             assert(dw_rule.dwordstart == dw_rule.dwordend)
             bit_left = (dw_rule.dwordstart+1) * 32 - dw_rule.bitend - 1
             bit_right = (dw_rule.dwordstart+1) * 32 - dw_rule.bitstart -1
         enable_check_cond = True
-        print(dw_rule)
+        #print(dw_rule)
         
         #print(dw_rule.checkcond)
         if dw_rule.checkcond:
@@ -127,14 +126,13 @@ def cmd_compare(frame_id, slide_id, cmd_driver, cmd_grits, flags, error_list, de
                 if mmc_value != mmc:
                     enable_check_cond = False
                 
-            else:
-                
+            else:                
                 for item in expression.split():
                     if item in flags:
                         expression = expression.replace(item, str(flags[item]))
-                        print(expression)
+                        #print(expression)
                 enable_check_cond = eval(expression) 
-                print(eval(expression) )
+                #print(eval(expression) )
        
         #print(dw_rule.attribute)
         attribute = dw_rule.attribute
@@ -150,15 +148,15 @@ def cmd_compare(frame_id, slide_id, cmd_driver, cmd_grits, flags, error_list, de
             expected = nonull_bits(bit_left, bit_right, dws_driver)
         elif attribute == "match_onlyif_non_zero" and enable_check_cond:
             expected = equal_bits(bit_left, bit_right, dws_grits, dws_driver)
-        print(expected, enable_check_cond)
+        #print(expected, enable_check_cond)
         if not expected:
             word_str_driver = ''
             word_str_grits = ''
             for wi in range(dw_rule.dwordstart, dw_rule.dwordend+1):
                 word_str_driver += (cmd_driver.dwords[wi]+" ")
                 word_str_grits += (cmd_grits.dwords[wi]+" ")
-            print(cmd_driver.name, " driver: ", dw_rule.dwordstart, " ", dw_rule.dwordend, " ", dw_rule.bitstart, " ", dw_rule.bitend, " dwords: 0X", word_str_driver, " bits: ", dws_driver[bit_left:bit_right+1])
-            print(cmd_driver.name, " grits: ", dw_rule.dwordstart, " ", dw_rule.dwordend, " ", dw_rule.bitstart, " ", dw_rule.bitend, " dwords: 0X", word_str_grits, " bits:", dws_grits[bit_left:bit_right+1])
+            #print(cmd_driver.name, " driver: ", dw_rule.dwordstart, " ", dw_rule.dwordend, " ", dw_rule.bitstart, " ", dw_rule.bitend, " dwords: 0X", word_str_driver, " bits: ", dws_driver[bit_left:bit_right+1])
+            #print(cmd_driver.name, " grits: ", dw_rule.dwordstart, " ", dw_rule.dwordend, " ", dw_rule.bitstart, " ", dw_rule.bitend, " dwords: 0X", word_str_grits, " bits:", dws_grits[bit_left:bit_right+1])
 
             error_list.append(ErrorInfo(cmd_driver, cmd_grits, dw_rule, frame_id, slide_id, dw_rule.dwordstart, dw_rule.dwordend, dw_rule.bitstart, dw_rule.bitend, True))
             if not debug_mode:
@@ -172,8 +170,8 @@ def cmd_compare(frame_id, slide_id, cmd_driver, cmd_grits, flags, error_list, de
     if dws_driver != dws_grits:
         for i in range(dw_length):
             if dws_driver[i*32:(i+1)*32] != dws_grits[i*32:(i+1)*32]:
-                print("dword:", i, cmd_driver.name)
-                print(dws_driver[i*32:(i+1)*32], dws_grits[i*32:(i+1)*32])
+                #print("dword:", i, cmd_driver.name)
+                #print(dws_driver[i*32:(i+1)*32], dws_grits[i*32:(i+1)*32])
                 error_list.append(ErrorInfo(cmd_driver, cmd_grits, None, frame_id, slide_id, i, i, 0, 31, False))
     #ToDo 
     return error_list
@@ -192,8 +190,6 @@ def main():
     grits_dp = DumpParser(args.gritsdump, checklist=guid)
     error_list = []
     debug_mode = False
-    import pdb 
-    pdb.set_trace()
     if args.workmode == 0:
         debug_mode = True
     if len(grits_dp.frame_list) != len(driver_dp.frame_list):        
@@ -223,9 +219,10 @@ def main():
         #compare the slide one by one
         for j, slide_driver in enumerate(frame_driver.slides):
             slide_grits = frame_grits.slides[j]
-            print("###########", debug_mode)
+            #print("###########", debug_mode)
             slide_compare(i, j, slide_driver, slide_grits, error_list, debug_mode, args.mmc)
         cmd_compare(i, -1, frame_driver.mi_rows[2], frame_grits.mi_rows[2],None,  error_list, debug_mode)#MI_FLUSH_DW
+    print("The diff between grits dump: {} and driver dump: {} as following:".format(args.driverdump, args.gritsdump))
     for err in error_list:
         print(err)
         

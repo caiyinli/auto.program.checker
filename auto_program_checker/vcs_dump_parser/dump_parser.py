@@ -1,7 +1,6 @@
 import os 
 import sys
-sys.path.append('d:\\APC\\auto.program.checker\\auto_program_checker\\')
-print(sys.path)
+#sys.path.append('d:\\APC\\auto.program.checker\\auto_program_checker\\')
 from guidline.guidline_parse import Guidline
 #e.g. #row="00434  00000380  01ff800400327000  12  33c1  CMD_VVCP_SURFACE_STATE     73c10003  0000007f  20000040  00000000  00000000"
 class RowParser:
@@ -55,8 +54,6 @@ class SlideParser:
                    assert(dw_rule.dwordstart==dw_rule.dwordend)
                    binary_dw = str(rp.get_binary_dword(rp.dwords[dw_rule.dwordstart]))                              
                    self.flags[dw_rule.flag] =  str(int(binary_dw[31 - dw_rule.bitend : 31 - dw_rule.bitstart + 1],2))            
-                   if dw_rule.bitend != dw_rule.bitstart:
-                       print(binary_dw, dw_rule.bitend, dw_rule.bitstart, self.flags)
         self.flags['surface_state_num'] = surface_state_num
         #print(self.flags)
         #print(self.flags)
@@ -79,8 +76,6 @@ class FrameParser:
         self._parse()
 
     def _parse(self):
-        #import pdb 
-        #pdb.set_trace()
         slide_start = False
         slide_index=0
         for row in self.rows:
@@ -108,8 +103,7 @@ class FrameParser:
                     elif slide_start:
                         slide_rows.append(row_parser)
                     else:
-                        self.mi_rows.append(row_parser)   
-                    print(self.cmd_list[-1])
+                        self.mi_rows.append(row_parser)                       
                     if (key == '13000' or key == '13010') and self.cmd_list[-2] == '77800':
                         break #the frame end when meet MI_FLUSH_DW and the last cmd is CMD_VD_PIPELINE_FLUSH       
 
